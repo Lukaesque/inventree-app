@@ -56,4 +56,14 @@ jobs:
         dart pub global activate fvm
         fvm install
         fvm flutter pub get
-        fvm flutter build apk --debug
+        fvm flutter build apk --release --target-platform android-arm,android-arm64
+
+    - name: Upload to release
+      uses: actions/upload-release-asset@v1
+      env:
+          GITHUB_TOKEN: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+      with:
+         upload_url: ${{ github.event.release.upload_url }}
+         asset_path: build/app/outputs/apk/release/app-release.apk
+         asset_name: inventree.apk
+         asset_content_type: application/vnd.android.package-archive
