@@ -23,6 +23,7 @@ import "package:inventree/widget/order/po_line_list.dart";
 
 import "package:inventree/widget/attachment_widget.dart";
 import "package:inventree/widget/notes_list_widget.dart";
+import "package:inventree/widget/history_widget.dart";
 import "package:inventree/widget/parameter_widget.dart";
 import "package:inventree/widget/progress.dart";
 import "package:inventree/widget/refreshable_state.dart";
@@ -321,8 +322,7 @@ class _PurchaseOrderDetailState
           }
         });
 
-    if (api.supportsPurchaseOrderDestination &&
-        widget.order.destinationId > 0) {
+    if (widget.order.destinationId > 0) {
       InvenTreeStockLocation().get(widget.order.destinationId).then((
         InvenTreeModel? loc,
       ) {
@@ -570,6 +570,16 @@ class _PurchaseOrderDetailState
       ShowNotesItem(context, widget.order, InvenTreePurchaseOrder.MODEL_TYPE),
     );
 
+    if (showHistory) {
+      tiles.add(
+        ShowHistoryItem(
+          context,
+          InvenTreePurchaseOrder.MODEL_TYPE,
+          widget.order.pk,
+        ),
+      );
+    }
+
     ListTile? parameterTile = ShowParametersItem(
       context,
       InvenTreePurchaseOrder.MODEL_TYPE,
@@ -582,18 +592,16 @@ class _PurchaseOrderDetailState
       tiles.add(parameterTile);
     }
 
-    ListTile? attachmentTile = ShowAttachmentsItem(
-      context,
-      InvenTreePurchaseOrder.MODEL_TYPE,
-      widget.order.pk,
-      widget.order.reference,
-      attachmentCount,
-      widget.order.canEdit,
+    tiles.add(
+      ShowAttachmentsItem(
+        context,
+        InvenTreePurchaseOrder.MODEL_TYPE,
+        widget.order.pk,
+        widget.order.reference,
+        attachmentCount,
+        widget.order.canEdit,
+      ),
     );
-
-    if (attachmentTile != null) {
-      tiles.add(attachmentTile);
-    }
 
     return tiles;
   }

@@ -6,7 +6,6 @@ import "package:inventree/widget/link_icon.dart";
 import "package:inventree/widget/paginator.dart";
 import "package:inventree/widget/refreshable_state.dart";
 
-import "package:inventree/api.dart";
 import "package:inventree/l10.dart";
 
 class PartCategoryList extends StatefulWidget {
@@ -66,20 +65,12 @@ class _PaginatedPartCategoryListState
 
   @override
   Map<String, String> get orderingOptions {
-    Map<String, String> options = {
+    return {
       "name": L10().name,
       "pathstring": L10().path,
       "level": L10().level,
+      "part_count": L10().parts,
     };
-
-    // Note: API v69 changed 'parts' to 'part_count'
-    if (InvenTreeAPI().apiVersion >= 69) {
-      options["part_count"] = L10().parts;
-    } else {
-      options["parts"] = L10().parts;
-    }
-
-    return options;
   }
 
   @override
@@ -102,7 +93,11 @@ class _PaginatedPartCategoryListState
     InvenTreePartCategory category = model as InvenTreePartCategory;
 
     return ListTile(
-      title: Text(category.name),
+      title: Text(
+        category.description == ""
+            ? (category.name)
+            : (category.name + " - " + category.description),
+      ),
       subtitle: Text(category.pathstring),
       trailing: LargeText("${category.partcount}", size: 14),
       leading: category.customIcon == null ? null : Icon(category.customIcon),

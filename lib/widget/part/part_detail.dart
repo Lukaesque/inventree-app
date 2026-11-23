@@ -22,6 +22,7 @@ import "package:inventree/widget/parameter_widget.dart";
 import "package:inventree/widget/part/bom_list.dart";
 import "package:inventree/widget/part/part_list.dart";
 import "package:inventree/widget/notes_list_widget.dart";
+import "package:inventree/widget/history_widget.dart";
 import "package:inventree/widget/part/part_pricing.dart";
 import "package:inventree/widget/progress.dart";
 import "package:inventree/widget/part/category_display.dart";
@@ -123,7 +124,7 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
       );
     }
 
-    if (allowLabelPrinting && api.supportsModernLabelPrinting) {
+    if (allowLabelPrinting) {
       actions.add(
         SpeedDialChild(
           child: Icon(TablerIcons.printer),
@@ -158,11 +159,13 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
       false,
     );
 
-    showPricing = await InvenTreeSettingsManager().getBool(
-      INV_PART_SHOW_PRICING,
-      true,
-    );
-    showBom = await InvenTreeSettingsManager().getBool(INV_PART_SHOW_BOM, true);
+    showPricing =
+        api.canViewPricing &&
+        await InvenTreeSettingsManager().getBool(INV_PART_SHOW_PRICING, true);
+    // BOM data requires the "bom" role (or "part" role for older servers)
+    showBom =
+        InvenTreeBomItem().canView &&
+        await InvenTreeSettingsManager().getBool(INV_PART_SHOW_BOM, true);
     allowLabelPrinting = await InvenTreeSettingsManager().getBool(
       INV_ENABLE_LABEL_PRINTING,
       true,
@@ -218,17 +221,15 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
     }
 
     // Request the number of attachments
-    if (api.supportsModernAttachments) {
-      InvenTreeAttachment()
-          .countAttachments(InvenTreePart.MODEL_TYPE, part.pk)
-          .then((int value) {
-            if (mounted) {
-              setState(() {
-                attachmentCount = value;
-              });
-            }
-          });
-    }
+    InvenTreeAttachment()
+        .countAttachments(InvenTreePart.MODEL_TYPE, part.pk)
+        .then((int value) {
+          if (mounted) {
+            setState(() {
+              attachmentCount = value;
+            });
+          }
+        });
 
     // Request the number of parameters
     if (api.supportsModernParameters) {
@@ -277,27 +278,29 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
       }
     }
 
-    // Request the number of BOM items
-    InvenTreePart().count(filters: {"in_bom_for": part.pk.toString()}).then((
-      int value,
-    ) {
-      if (mounted) {
-        setState(() {
-          bomCount = value;
-        });
-      }
-    });
+    if (InvenTreeBomItem().canView) {
+      // Request the number of BOM items
+      InvenTreePart().count(filters: {"in_bom_for": part.pk.toString()}).then((
+        int value,
+      ) {
+        if (mounted) {
+          setState(() {
+            bomCount = value;
+          });
+        }
+      });
 
-    // Request number of "used in" parts
-    InvenTreeBomItem().count(filters: {"uses": part.pk.toString()}).then((
-      int value,
-    ) {
-      if (mounted) {
-        setState(() {
-          usedInCount = value;
-        });
-      }
-    });
+      // Request number of "used in" parts
+      InvenTreeBomItem().count(filters: {"uses": part.pk.toString()}).then((
+        int value,
+      ) {
+        if (mounted) {
+          setState(() {
+            usedInCount = value;
+          });
+        }
+      });
+    }
 
     // Request the number of variant items
     InvenTreePart().count(filters: {"variant_of": part.pk.toString()}).then((
@@ -728,6 +731,10 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
     // Notes field
     tiles.add(ShowNotesItem(context, part, InvenTreePart.MODEL_TYPE));
 
+    if (showHistory) {
+      tiles.add(ShowHistoryItem(context, InvenTreePart.MODEL_TYPE, part.pk));
+    }
+
     ListTile? parameterTile = ShowParametersItem(
       context,
       InvenTreePart.MODEL_TYPE,
@@ -740,18 +747,16 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
       tiles.add(parameterTile);
     }
 
-    ListTile? attachmentTile = ShowAttachmentsItem(
-      context,
-      InvenTreePart.MODEL_TYPE,
-      part.pk,
-      L10().part,
-      attachmentCount,
-      part.canEdit,
+    tiles.add(
+      ShowAttachmentsItem(
+        context,
+        InvenTreePart.MODEL_TYPE,
+        part.pk,
+        L10().part,
+        attachmentCount,
+        part.canEdit,
+      ),
     );
-
-    if (attachmentTile != null) {
-      tiles.add(attachmentTile);
-    }
 
     return tiles;
   }
@@ -804,7 +809,7 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
       // read the next available serial number
       showLoadingOverlay();
       var response = await api.get(
-        "/api/part/${part.pk}/serial-numbers/",
+        part.serialNumbersUrl,
         expectedStatusCode: null,
       );
       hideLoadingOverlay();
@@ -813,18 +818,10 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
         data["serial_numbers"] =
             response.data["next"] ?? response.data["latest"];
       }
-
-      print(
-        "response: " +
-            response.statusCode.toString() +
-            response.data.toString(),
-      );
     } else {
       // Cannot set serial numbers for non-trackable parts
       fields.remove("serial_numbers");
     }
-
-    print("data: ${data.toString()}");
 
     InvenTreeStockItem().createForm(
       context,
@@ -832,12 +829,11 @@ class _PartDisplayState extends RefreshableState<PartDetailWidget> {
       fields: fields,
       data: data,
       onSuccess: (result) async {
-        Map<String, dynamic> data = result as Map<String, dynamic>;
-
-        if (data.containsKey("pk")) {
-          var item = InvenTreeStockItem.fromJson(data);
-          item.goToDetailPage(context);
-        }
+        InvenTreeStockItem.onCreated(
+          context,
+          result as Map<String, dynamic>,
+          onMultiple: () => refresh(context),
+        );
       },
     );
   }

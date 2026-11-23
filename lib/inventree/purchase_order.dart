@@ -1,6 +1,5 @@
 import "package:flutter/material.dart";
 import "package:flutter_tabler_icons/flutter_tabler_icons.dart";
-import "package:inventree/api.dart";
 import "package:inventree/helpers.dart";
 import "package:inventree/inventree/company.dart";
 import "package:inventree/inventree/model.dart";
@@ -63,14 +62,6 @@ class InvenTreePurchaseOrder extends InvenTreeOrder {
       },
     };
 
-    if (!InvenTreeAPI().supportsPurchaseOrderDestination) {
-      fields.remove("destination");
-    }
-
-    if (!InvenTreeAPI().supportsStartDate) {
-      fields.remove("start_date");
-    }
-
     return fields;
   }
 
@@ -95,18 +86,19 @@ class InvenTreePurchaseOrder extends InvenTreeOrder {
 
   int get destinationId => getInt("destination");
 
-  bool get isOpen => api.PurchaseOrderStatus.isNameIn(status, [
+  bool get isOpen => api.PurchaseOrderStatus.isNameIn(logicalStatus, [
     "PENDING",
     "PLACED",
     "ON_HOLD",
   ]);
 
   bool get isPending =>
-      api.PurchaseOrderStatus.isNameIn(status, ["PENDING", "ON_HOLD"]);
+      api.PurchaseOrderStatus.isNameIn(logicalStatus, ["PENDING", "ON_HOLD"]);
 
-  bool get isPlaced => api.PurchaseOrderStatus.isNameIn(status, ["PLACED"]);
+  bool get isPlaced =>
+      api.PurchaseOrderStatus.isNameIn(logicalStatus, ["PLACED"]);
 
-  bool get isFailed => api.PurchaseOrderStatus.isNameIn(status, [
+  bool get isFailed => api.PurchaseOrderStatus.isNameIn(logicalStatus, [
     "CANCELLED",
     "LOST",
     "RETURNED",

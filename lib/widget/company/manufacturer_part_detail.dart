@@ -12,6 +12,7 @@ import "package:inventree/inventree/company.dart";
 import "package:inventree/inventree/part.dart";
 import "package:inventree/widget/attachment_widget.dart";
 import "package:inventree/widget/parameter_widget.dart";
+import "package:inventree/widget/history_widget.dart";
 
 import "package:inventree/widget/refreshable_state.dart";
 import "package:inventree/widget/snacks.dart";
@@ -207,6 +208,16 @@ class _ManufacturerPartDisplayState
       );
     }
 
+    if (showHistory) {
+      tiles.add(
+        ShowHistoryItem(
+          context,
+          InvenTreeManufacturerPart.MODEL_TYPE,
+          widget.manufacturerPart.pk,
+        ),
+      );
+    }
+
     ListTile? parameterTile = ShowParametersItem(
       context,
       InvenTreeManufacturerPart.MODEL_TYPE,
@@ -219,18 +230,16 @@ class _ManufacturerPartDisplayState
       tiles.add(parameterTile);
     }
 
-    ListTile? attachmentTile = ShowAttachmentsItem(
-      context,
-      InvenTreeManufacturerPart.MODEL_TYPE,
-      widget.manufacturerPart.pk,
-      widget.manufacturerPart.MPN,
-      attachmentCount,
-      widget.manufacturerPart.canEdit,
+    tiles.add(
+      ShowAttachmentsItem(
+        context,
+        InvenTreeManufacturerPart.MODEL_TYPE,
+        widget.manufacturerPart.pk,
+        widget.manufacturerPart.MPN,
+        attachmentCount,
+        widget.manufacturerPart.canEdit,
+      ),
     );
-
-    if (attachmentTile != null) {
-      tiles.add(attachmentTile);
-    }
 
     return tiles;
   }

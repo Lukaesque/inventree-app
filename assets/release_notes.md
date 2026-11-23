@@ -1,11 +1,51 @@
-## xx.yy.z - Month Year
+### 1.1.1 - November 2026
+---
+
+- Fix incorrect allocation count in build detail widget
+- Fix "new version available" notice showing in "About" view when app is up to date
+- Bug fix for part pricing display
+- Fix handling of form response data for stock item creation
+- Improved allocation display for build orders
+- Multiple bug fixes for build order support
+- Improved role management for BOM items
+- Bug fix for stock item test results display
+- Bug fixes for stock adjustment actions
+- Handle timeout of label printing and notify the user
+
+### 1.1.0 - November 2026
+---
+
+- Handle control characters for "keyboard wedge" barcode scanners
+- Ignore additional barcodes read in the same shot by "keyboard wedge" barcode scanners
+- Support "keyboard wedge" barcode scanners which do not send an Enter key after each scan
+- Adds barcode scan log, showing recent scans and server responses
+- Barcode scanner displays the most recently scanned code
+- Add "reference" ordering for BOM list
+- Bug fix for list widget ordering
+
+### 1.0.0 - November 2026
+---
+
+- Login now uses secure sessions, matching the web interface (API tokens are no longer used)
+- Supports two-factor authentication (TOTP and recovery codes), with "trust this device"
+- Session data is stored in secure device storage
+- Username is remembered after logout
+- Expired sessions now return the user to the login screen
+- Credentials are removed from error reports
+- Requires InvenTree server API version 314 or newer - existing users must log in again
+- Updated translations
+
+### 0.26.0 - October 2026
 ---
 
 - Supports new multi-note API for model instances
+- Supports read-only audit log for historical changes
+- Removes legacy StockItemTracking functionality (replaced by audit log)
 - Implement rendering for HTML note content
+- Adds support for separate "pricing" permission set
+- Updated translations
 
-
-## 0.25.2 - September 2026
+### 0.25.2 - September 2026
 ---
 
 - On stock transfer, add a merge option.
@@ -13,28 +53,28 @@
 - Bug fix for top level stock display
 - Bug fix for top level location display
 
-## 0.25.1 - August 2026
+### 0.25.1 - August 2026
 ---
 
 - Additional filtering options for supplier parts
 - Additional barcode support using data intents
 - Improvements for build order display
 
-## 0.25.0 - July 2026
+### 0.25.0 - July 2026
 ---
 
 - API speed improvements
 - Enable scanning of Build Order barcodes
 - Updated translations
 
-## 0.24.3 - May 2026
+### 0.24.3 - May 2026
 ---
 
 - Update file and image selection packages
 - Check for app updates 
 - Updated translations
 
-## 0.24.2 - May 2026
+### 0.24.2 - May 2026
 ---
 
 - Display user information in the app drawer
@@ -42,47 +82,47 @@
 - Moves notifications to the top of the screen
 - Updated translations
 
-## 0.24.1 - April 2026
+### 0.24.1 - April 2026
 ---
 
 - Fixes bug which prevented label printing
 
-## 0.24.0 - April 2026
+### 0.24.0 - April 2026
 ---
 
 - Adds support for build order management
 - Updated translations
 
-## 0.23.0 - April 2026
+### 0.23.0 - April 2026
 ---
 
 - Fixes image artifact issues for iOS devices
 - Update underlying Flutter version
 
-## 0.22.7 - March 2026
+### 0.22.7 - March 2026
 ---
 
 - Bug fix for loading sales order shipments
 
-## 0.22.6 - March 2026
+### 0.22.6 - March 2026
 ---
 
 - Fix for displaying stock item test results
 
-## 0.22.5 - March 2026
+### 0.22.5 - March 2026
 ---
 
 - Fix default value for "cascade" filter in PartCategory list view
 - Fix default value for "cascade" filter in StockLocation list view
 
-## 0.22.4 - March 2026
+### 0.22.4 - March 2026
 ---
 
 - Adds button to check server connection
 - Fixes bug fetching sales order shipments
 - Fix for boolean fields in API forms
 
-## 0.22.3 - February 2026
+### 0.22.3 - February 2026
 ---
 
 - Auto-fill location data when receiving item via barcode scan
@@ -90,12 +130,12 @@
 - Add support for tri-state boolean form fields
 - Bug fixes for refreshing list view data
 
-## 0.22.2 - February 2026
+### 0.22.2 - February 2026
 ---
 
 - Bug fix for label printing, which used improperly formatted URL
 
-## 0.22.1 - February 2026
+### 0.22.1 - February 2026
 ---
 
 - Fixes bug related to fetching images from remote URLs

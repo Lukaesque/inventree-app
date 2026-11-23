@@ -28,8 +28,9 @@ class InvenTreePartCategory extends InvenTreeModel {
 
   static const String MODEL_TYPE = "partcategory";
 
+  // Part categories have a separate role (all supported server versions)
   @override
-  List<String> get rolesRequired => ["part"];
+  List<String> get rolesRequired => ["part_category"];
 
   // Navigate to a detail page for this item
   @override
@@ -214,12 +215,19 @@ class InvenTreePart extends InvenTreeModel {
         });
   }
 
+  // API endpoints for this part (relative to the API root)
+  String get serialNumbersUrl => "${URL}${pk}/serial-numbers/";
+
+  String get requirementsUrl => "${URL}${pk}/requirements/";
+
+  String get pricingUrl => InvenTreeAPI().supportsPricingRole
+      ? "pricing/part/${pk}/"
+      : "${URL}${pk}/pricing/";
+
   // Request requirements information for this part
   Future<InvenTreePartRequirements?> getRequirements() async {
     try {
-      final response = await InvenTreeAPI().get(
-        "/api/part/${pk}/requirements/",
-      );
+      final response = await InvenTreeAPI().get(requirementsUrl);
       if (response.isValid()) {
         final requirementsData = response.data;
 
@@ -237,8 +245,14 @@ class InvenTreePart extends InvenTreeModel {
 
   // Request pricing data for this part
   Future<InvenTreePartPricing?> getPricing() async {
+    final api = InvenTreeAPI();
+
+    if (!api.canViewPricing) {
+      return null;
+    }
+
     try {
-      final response = await InvenTreeAPI().get("/api/part/${pk}/pricing/");
+      final response = await api.get(pricingUrl);
       if (response.isValid()) {
         final pricingData = response.data;
 
@@ -500,7 +514,8 @@ class InvenTreePartPricing extends InvenTreeModel {
     : super.fromJson(json);
 
   @override
-  List<String> get rolesRequired => ["part"];
+  List<String> get rolesRequired =>
+      InvenTreeAPI().supportsPricingRole ? ["pricing"] : ["part"];
 
   @override
   InvenTreeModel createFromJson(Map<String, dynamic> json) =>

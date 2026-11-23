@@ -1,7 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_speed_dial/flutter_speed_dial.dart";
 import "package:flutter_tabler_icons/flutter_tabler_icons.dart";
-import "package:inventree/api.dart";
 
 import "package:inventree/app_colors.dart";
 import "package:inventree/l10.dart";
@@ -14,6 +13,7 @@ import "package:inventree/widget/part/part_list.dart";
 import "package:inventree/widget/progress.dart";
 import "package:inventree/widget/snacks.dart";
 import "package:inventree/widget/refreshable_state.dart";
+import "package:inventree/widget/history_widget.dart";
 
 class CategoryDisplayWidget extends StatefulWidget {
   const CategoryDisplayWidget(this.category, {Key? key}) : super(key: key);
@@ -194,16 +194,18 @@ class _CategoryDisplayState extends RefreshableState<CategoryDisplayWidget> {
     if (parent != null) {
       filters["parent"] = parent.toString();
     } else {
-      if (InvenTreeAPI().supportsTopLevelFiltering) {
-        filters["top_level"] = "true";
-      } else {
-        filters["parent"] = "null";
-      }
+      filters["top_level"] = "true";
     }
 
     List<Widget> tiles = <Widget>[
       getCategoryDescriptionCard(),
       if (showPk && widget.category != null) pkTile(widget.category!.pk),
+      if (showHistory && widget.category != null)
+        ShowHistoryItem(
+          context,
+          InvenTreePartCategory.MODEL_TYPE,
+          widget.category!.pk,
+        ),
       Expanded(
         child: PaginatedPartCategoryList(filters, title: L10().subcategories),
         flex: 10,

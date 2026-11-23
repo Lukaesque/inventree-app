@@ -15,6 +15,7 @@ import "package:inventree/barcode/barcode.dart";
 import "package:inventree/inventree/part.dart";
 import "package:inventree/inventree/company.dart";
 import "package:inventree/widget/parameter_widget.dart";
+import "package:inventree/widget/history_widget.dart";
 
 import "package:inventree/widget/progress.dart";
 import "package:inventree/widget/refreshable_state.dart";
@@ -339,6 +340,16 @@ class _SupplierPartDisplayState
       );
     }
 
+    if (showHistory) {
+      tiles.add(
+        ShowHistoryItem(
+          context,
+          InvenTreeSupplierPart.MODEL_TYPE,
+          widget.supplierPart.pk,
+        ),
+      );
+    }
+
     ListTile? parameterTile = ShowParametersItem(
       context,
       InvenTreeSupplierPart.MODEL_TYPE,
@@ -351,18 +362,16 @@ class _SupplierPartDisplayState
       tiles.add(parameterTile);
     }
 
-    ListTile? attachmentTile = ShowAttachmentsItem(
-      context,
-      InvenTreeSupplierPart.MODEL_TYPE,
-      widget.supplierPart.pk,
-      widget.supplierPart.SKU,
-      attachmentCount,
-      widget.supplierPart.canEdit,
+    tiles.add(
+      ShowAttachmentsItem(
+        context,
+        InvenTreeSupplierPart.MODEL_TYPE,
+        widget.supplierPart.pk,
+        widget.supplierPart.SKU,
+        attachmentCount,
+        widget.supplierPart.canEdit,
+      ),
     );
-
-    if (attachmentTile != null) {
-      tiles.add(attachmentTile);
-    }
 
     return tiles;
   }

@@ -1,10 +1,12 @@
 import "package:flutter/material.dart";
 import "package:flutter_tabler_icons/flutter_tabler_icons.dart";
+import "package:one_context/one_context.dart";
 
 import "package:inventree/api.dart";
 import "package:inventree/helpers.dart";
 import "package:inventree/l10.dart";
 
+import "package:inventree/barcode/scan_log.dart";
 import "package:inventree/barcode/tones.dart";
 
 import "package:inventree/inventree/sentry.dart";
@@ -24,6 +26,44 @@ class BarcodeHandler {
   // Return the text to display on the barcode overlay
   // Note: Will be overridden by child classes
   String getOverlayText(BuildContext context) => "Barcode Overlay";
+
+  // Description of this scan for the barcode scan log
+  String get scanLogContext {
+    final BuildContext? context = hasContext() ? OneContext().context : null;
+
+    return context != null ? getOverlayText(context) : "";
+  }
+
+  /*
+   * Return true if the server response represents a successful scan,
+   * for the barcode scan log.
+   * Override where the handler treats responses differently.
+   */
+  bool isScanSuccessful(APIResponse response, Map<String, dynamic> data) {
+    return response.isValid() &&
+        response.statusCode < 400 &&
+        response.isMap() &&
+        !data.containsKey("error");
+  }
+
+  void _logScan(
+    String barcode,
+    String url, {
+    required bool success,
+    APIResponse? response,
+  }) {
+    BarcodeScanLog().add(
+      BarcodeScanLogEntry(
+        timestamp: DateTime.now(),
+        context: scanLogContext,
+        barcode: barcode,
+        success: success,
+        url: url,
+        statusCode: response?.statusCode,
+        response: response?.data,
+      ),
+    );
+  }
 
   // Called when the server "matches" a barcode
   Future<void> onBarcodeMatched(Map<String, dynamic> data) async {
@@ -90,6 +130,7 @@ class BarcodeHandler {
     }
 
     if (response == null) {
+      _logScan(barcode, url, success: false);
       barcodeFailureTone();
       showSnackIcon(L10().barcodeError, success: false);
       return;
@@ -99,8 +140,24 @@ class BarcodeHandler {
 
     Map<String, dynamic> data = response.asMap();
 
+    // Log before dispatch, as handlers may navigate away
+    _logScan(
+      barcode,
+      url,
+      success: isScanSuccessful(response, data),
+      response: response,
+    );
+
+    // No usable response (connection failure, timeout, certificate error,
+    // or a 5xx server error). The API layer has already shown an error
+    // to the user, and reported any unexpected server errors to sentry.
+    if (!response.isValid()) {
+      barcodeFailureTone();
+      return;
+    }
+
     // Handle strange response from the server
-    if (!response.isValid() || !response.isMap()) {
+    if (!response.isMap()) {
       await onBarcodeUnknown({});
 
       showSnackIcon(L10().serverError, success: false);

@@ -1,6 +1,11 @@
+import "dart:io";
+
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:package_info_plus/package_info_plus.dart";
 import "package:inventree/api.dart";
+import "package:inventree/auth/auth_manager.dart";
+import "package:inventree/auth/auth_method.dart";
 import "package:inventree/user_profile.dart";
 
 // This is the same as the following issue except it keeps the http client
@@ -10,20 +15,58 @@ class CustomBinding extends AutomatedTestWidgetsFlutterBinding {
   bool get overrideHttpClient => false;
 }
 
+// Secure storage operations (e.g. "write", "delete") which should fail,
+// to test handling of storage errors
+final Set<String> secureStorageFailures = {};
+
+// Directory for temporary and cache files (see setupTestEnv)
+late String testTempDirectory;
+
+/*
+ * Use a new (empty) directory for temporary and cache files.
+ * Note: The image cache does not reliably save its index within a widget test,
+ *       so tests which display images should use a new directory each time.
+ */
+void useNewTempDirectory() {
+  testTempDirectory = Directory.systemTemp
+      .createTempSync("inventree_test_")
+      .path;
+}
+
 void setupTestEnv() {
   // Uses custom binding to not override the http client
   CustomBinding();
 
+  // Package information is used when building error reports
+  PackageInfo.setMockInitialValues(
+    appName: "InvenTree",
+    packageName: "inventree.inventree_app",
+    version: "0.0.0",
+    buildNumber: "0",
+    buildSignature: "",
+  );
+
   // Mock the path provider
+  // Documents (e.g. the preferences database) are stored in the working directory,
+  // while temporary and cache files (e.g. downloaded images) go to a temporary directory
+  useNewTempDirectory();
+
   const MethodChannel channel = MethodChannel(
     "plugins.flutter.io/path_provider",
   );
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-        return ".";
+        switch (methodCall.method) {
+          case "getTemporaryDirectory":
+          case "getApplicationSupportDirectory":
+          case "getApplicationCacheDirectory":
+            return testTempDirectory;
+          default:
+            return ".";
+        }
       });
 
-  // Mock secure storage (used for storing profile API tokens) with a
+  // Mock secure storage (used for storing profile session cookies) with a
   // simple in-memory map, since there's no real platform keychain available
   // in the test harness
   final Map<String, String> secureStorageMock = {};
@@ -34,6 +77,13 @@ void setupTestEnv() {
       .setMockMethodCallHandler(secureStorageChannel, (
         MethodCall methodCall,
       ) async {
+        if (secureStorageFailures.contains(methodCall.method)) {
+          throw PlatformException(
+            code: "SecureStorageFailure",
+            message: "Simulated secure storage failure",
+          );
+        }
+
         final Map<dynamic, dynamic> args =
             (methodCall.arguments as Map<dynamic, dynamic>?) ?? {};
         final String? key = args["key"] as String?;
@@ -63,13 +113,13 @@ void setupTestEnv() {
 // Accessors for default testing values
 const String testServerAddress = "http://localhost:8000/";
 const String testServerName = "Test Server";
-const String testUsername = "testuser";
-const String testPassword = "testpassword";
+const String testUsername = "admin";
+const String testPassword = "inventree";
 
 /*
- * Request an API token for the given profile
+ * Login to the server with the given profile (establishing a session)
  */
-Future<bool> fetchProfileToken({
+Future<bool> loginProfile({
   UserProfile? profile,
   String username = testUsername,
   String password = testPassword,
@@ -78,12 +128,12 @@ Future<bool> fetchProfileToken({
 
   assert(profile != null);
 
-  final response = await InvenTreeAPI().fetchToken(
+  final result = await InvenTreeAuth().beginLogin(
     profile!,
-    username,
-    password,
+    PasswordAuthMethod(username, password),
   );
-  return response.successful();
+
+  return result.authenticated;
 }
 
 /*
@@ -91,7 +141,7 @@ Future<bool> fetchProfileToken({
  */
 Future<UserProfile> setupServerProfile({
   bool select = true,
-  bool fetchToken = false,
+  bool login = false,
 }) async {
   // Setup a valid server profile
 
@@ -115,10 +165,10 @@ Future<UserProfile> setupServerProfile({
     assert(await UserProfileDBManager().selectProfileByName(testServerName));
   }
 
-  if (fetchToken && !profile!.hasToken) {
-    final bool result = await fetchProfileToken(profile: profile);
+  if (login && !profile!.hasSession) {
+    final bool result = await loginProfile(profile: profile);
     assert(result);
-    assert(profile.hasToken);
+    assert(profile.hasSession);
   }
 
   return profile!;
@@ -128,8 +178,8 @@ Future<UserProfile> setupServerProfile({
  * Complete all steps necessary to login to the server
  */
 Future<void> connectToTestServer() async {
-  // Setup profile, and fetch user token as necessary
-  final profile = await setupServerProfile(fetchToken: true);
+  // Setup profile, and login as necessary
+  final profile = await setupServerProfile(login: true);
 
   // Connect to the server
   assert(await InvenTreeAPI().connectToServer(profile));

@@ -1,5 +1,4 @@
 import "package:flutter/material.dart";
-import "package:inventree/api.dart";
 import "package:inventree/helpers.dart";
 
 import "package:inventree/inventree/company.dart";
@@ -62,10 +61,6 @@ class InvenTreeSalesOrder extends InvenTreeOrder {
       },
     };
 
-    if (!InvenTreeAPI().supportsStartDate) {
-      fields.remove("start_date");
-    }
-
     return fields;
   }
 
@@ -109,19 +104,20 @@ class InvenTreeSalesOrder extends InvenTreeOrder {
 
   String get customerReference => getString("customer_reference");
 
-  bool get isOpen => api.SalesOrderStatus.isNameIn(status, [
+  bool get isOpen => api.SalesOrderStatus.isNameIn(logicalStatus, [
     "PENDING",
     "IN_PROGRESS",
     "ON_HOLD",
   ]);
 
   bool get isPending =>
-      api.SalesOrderStatus.isNameIn(status, ["PENDING", "ON_HOLD"]);
+      api.SalesOrderStatus.isNameIn(logicalStatus, ["PENDING", "ON_HOLD"]);
 
   bool get isInProgress =>
-      api.SalesOrderStatus.isNameIn(status, ["IN_PROGRESS"]);
+      api.SalesOrderStatus.isNameIn(logicalStatus, ["IN_PROGRESS"]);
 
-  bool get isComplete => api.SalesOrderStatus.isNameIn(status, ["SHIPPED"]);
+  bool get isComplete =>
+      api.SalesOrderStatus.isNameIn(logicalStatus, ["SHIPPED"]);
 }
 
 /*
